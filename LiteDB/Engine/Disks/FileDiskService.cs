@@ -66,7 +66,7 @@ namespace LiteDB
             if (_options.FileMode == FileMode.ReadOnly) _options.Journal = false;
 
             // open/create file using read only/exclusive options
-            _stream = new FileStream(_filename,
+            _stream = CreateFileStream(_filename,
                 _options.FileMode == FileMode.ReadOnly ? System.IO.FileMode.Open : System.IO.FileMode.OpenOrCreate,
                 _options.FileMode == FileMode.ReadOnly ? FileAccess.Read : FileAccess.ReadWrite,
                 _options.FileMode == FileMode.Exclusive ? FileShare.None : FileShare.ReadWrite,
@@ -193,7 +193,7 @@ namespace LiteDB
             if (_journal == null)
             {
                 // open or create datafile if not exists
-                _journal = new FileStream(_journalFilename,
+                _journal = CreateFileStream(_journalFilename,
                     System.IO.FileMode.OpenOrCreate,
                     FileAccess.ReadWrite,
                     FileShare.ReadWrite,
@@ -237,7 +237,7 @@ namespace LiteDB
             {
                 try
                 {
-                    _journal = new FileStream(_journalFilename,
+                    _journal = CreateFileStream(_journalFilename,
                         System.IO.FileMode.Open,
                         FileAccess.ReadWrite,
                         FileShare.ReadWrite,
@@ -246,9 +246,11 @@ namespace LiteDB
                     // just avoid initialize recovery if journal is empty
                     if (_journal.Length == 0) yield break;
 
+#if NET35
                     // lock journal file during reading
                     // using `Lock` to throw IOException when in use
                     _journal.Lock(0, 1);
+#endif
                 }
                 catch(FileNotFoundException)
                 {
@@ -292,9 +294,9 @@ namespace LiteDB
             }
         }
 
-        #endregion
+#endregion
 
-        #region Lock / Unlock
+#region Lock / Unlock
 
         /// <summary>
         /// Indicate disk can be access by multiples processes or not
@@ -345,6 +347,12 @@ namespace LiteDB
 #endif
         }
 
-        #endregion
+#endregion
+
+        public virtual FileStream CreateFileStream(string path, System.IO.FileMode mode, FileAccess access, FileShare share, int bufferSize)
+        {
+            return new FileStream(path, mode, access, share, bufferSize);
+        }
+
     }
 }
